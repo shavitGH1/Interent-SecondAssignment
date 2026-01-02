@@ -7,7 +7,7 @@
       "command": "npm",
       "args": ["run", "dev"],
       "group": "build",
-      "problemMatcher": "$npm"
+      "problemMatcher": "$tsc"
     },
     {
       "label": "npm: test",
@@ -15,7 +15,7 @@
       "command": "npm",
       "args": ["test"],
       "group": "test",
-      "problemMatcher": "$npm"
+      "problemMatcher": []
     }
   ]
 }
