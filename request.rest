@@ -1,0 +1,173 @@
+@baseUrl = http://localhost:3000
+@jsonHeader = Content-Type: application/json
+@itemId = 
+@accessToken = 
+@refreshToken = 
+@postId = 
+@commentId = 
+
+### ============================================
+### HEALTH CHECK
+### ============================================
+
+### Health Check
+GET {{baseUrl}}/api/health
+
+### ============================================
+### ITEMS CRUD
+### ============================================
+
+### List all items
+GET {{baseUrl}}/api/items
+
+### Create an item
+POST {{baseUrl}}/api/items
+{{jsonHeader}}
+
+{
+  "name": "Laptop",
+  "price": 999.99
+}
+
+### Get item by ID
+GET {{baseUrl}}/api/items/{{itemId}}
+
+### Update item
+PUT {{baseUrl}}/api/items/{{itemId}}
+{{jsonHeader}}
+
+{
+  "name": "Gaming Laptop",
+  "price": 1299.99
+}
+
+### Delete item
+DELETE {{baseUrl}}/api/items/{{itemId}}
+
+### ============================================
+### USER AUTHENTICATION
+### ============================================
+
+### Register user
+POST {{baseUrl}}/api/user/register
+{{jsonHeader}}
+
+{
+  "email": "user@example.com",
+  "password": "password123",
+  "content": "My bio"
+}
+
+### Login user
+POST {{baseUrl}}/api/user/login
+{{jsonHeader}}
+
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
+
+### Get user profile (authenticated)
+GET {{baseUrl}}/api/user/profile
+Authorization: Bearer {{accessToken}}
+
+### Update user profile
+PUT {{baseUrl}}/api/user/profile
+Authorization: Bearer {{accessToken}}
+{{jsonHeader}}
+
+{
+  "email": "newemail@example.com",
+  "content": "Updated bio",
+  "password": "newpassword123"
+}
+
+### Refresh access token
+POST {{baseUrl}}/api/user/refresh
+{{jsonHeader}}
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### Logout user
+POST {{baseUrl}}/api/user/logout
+Authorization: Bearer {{accessToken}}
+
+### Delete user profile
+DELETE {{baseUrl}}/api/user/profile
+Authorization: Bearer {{accessToken}}
+
+### Get user by sender ID
+GET {{baseUrl}}/api/user/1
+
+### ============================================
+### POSTS
+### ============================================
+
+### Create post (authenticated)
+POST {{baseUrl}}/api/post
+Authorization: Bearer {{accessToken}}
+{{jsonHeader}}
+
+{
+  "content": "This is my first post!"
+}
+
+### List all posts
+GET {{baseUrl}}/api/post
+
+### List posts by sender
+GET {{baseUrl}}/api/post?sender=1
+
+### Get single post
+GET {{baseUrl}}/api/post/{{postId}}
+
+### Update post (authenticated)
+PUT {{baseUrl}}/api/post/{{postId}}
+Authorization: Bearer {{accessToken}}
+{{jsonHeader}}
+
+{
+  "content": "Updated post content"
+}
+
+### ============================================
+### COMMENTS
+### ============================================
+
+### Create comment (authenticated)
+POST {{baseUrl}}/api/comment
+Authorization: Bearer {{accessToken}}
+{{jsonHeader}}
+
+{
+  "content": "Great post!",
+  "post_id": "{{postId}}"
+}
+
+### Get single comment
+GET {{baseUrl}}/api/comment/{{commentId}}
+
+### List comments by post
+GET {{baseUrl}}/api/comment?post={{postId}}
+
+### Update comment (authenticated)
+PUT {{baseUrl}}/api/comment/{{commentId}}
+Authorization: Bearer {{accessToken}}
+{{jsonHeader}}
+
+{
+  "content": "Updated comment"
+}
+
+### Delete comment (authenticated)
+DELETE {{baseUrl}}/api/comment/{{commentId}}
+Authorization: Bearer {{accessToken}}
+
+### ============================================
+### SWAGGER DOCS
+### ============================================
+
+### View API documentation
+GET {{baseUrl}}/api/docs
