@@ -1,12 +1,16 @@
-﻿import request from 'supertest';
+﻿import dotenv from 'dotenv';
+import request from 'supertest';
 import mongoose from 'mongoose';
 import { app } from '../src/app';
 import User from '../src/models/User';
 import Session from '../src/models/Session';
 
+// Load test environment variables
+dotenv.config({ path: '.env.test' });
+
 describe('Authentication & Authorization Tests', () => {
   beforeAll(async () => {
-    const mongoUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/second_assignment';
+    const mongoUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/second_assignment_test';
     await mongoose.connect(mongoUri);
   }, 30000);
 

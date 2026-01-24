@@ -1,3 +1,4 @@
+import dotenv from 'dotenv';
 import request from 'supertest';
 import mongoose from 'mongoose';
 import { app } from '../src/app';
@@ -5,6 +6,9 @@ import User from '../src/models/User';
 import Post from '../src/models/Post';
 import Comment from '../src/models/Comment';
 import Session from '../src/models/Session';
+
+// Load test environment variables
+dotenv.config({ path: '.env.test' });
 
 const registerAndLogin = async (
   email: string = 'user@example.com',
@@ -20,7 +24,7 @@ const registerAndLogin = async (
 
 describe('Complete API Test Suite', () => {
   beforeAll(async () => {
-    const mongoUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/second_assignment';
+    const mongoUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/second_assignment_test';
     await mongoose.connect(mongoUri);
   }, 30000);
 
@@ -1200,6 +1204,342 @@ describe('Complete API Test Suite', () => {
         .send({ email: 'new@test.com', password: 'newpass123' });
       
       expect(loginRes.status).toBe(200);
+    }, 10000);
+  });
+
+  // ====================================
+  // COMPREHENSIVE ERROR COVERAGE TESTS
+  // ====================================
+  describe('Comprehensive Error Coverage', () => {
+    it('should handle missing content in comment update', async () => {
+      const { accessToken } = await registerAndLogin();
+      
+      const postRes = await request(app)
+        .post('/api/post')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ content: 'Test post' });
+      
+      const commentRes = await request(app)
+        .post('/api/comment')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ content: 'Original comment', post_id: postRes.body.id });
+      
+      const res = await request(app)
+        .put(`/api/comment/${commentRes.body.id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({});
+      
+      expect(res.status).toBe(400);
+      expect(res.body.message).toContain('content');
+    }, 10000);
+
+    it('should handle update comment for non-existent comment', async () => {
+      const { accessToken } = await registerAndLogin();
+      const fakeId = new mongoose.Types.ObjectId();
+      
+      const res = await request(app)
+        .put(`/api/comment/${fakeId}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ content: 'Updated content' });
+      
+      expect(res.status).toBe(404);
+      expect(res.body.message).toContain('Comment not found');
+    }, 10000);
+
+    it('should handle delete comment for non-existent comment', async () => {
+      const { accessToken } = await registerAndLogin();
+      const fakeId = new mongoose.Types.ObjectId();
+      
+      const res = await request(app)
+        .delete(`/api/comment/${fakeId}`)
+        .set('Authorization', `Bearer ${accessToken}`);
+      
+      expect(res.status).toBe(404);
+      expect(res.body.message).toContain('Comment not found');
+    }, 10000);
+
+    it('should handle update post for non-existent post', async () => {
+      const { accessToken } = await registerAndLogin();
+      const fakeId = new mongoose.Types.ObjectId();
+      
+      const res = await request(app)
+        .put(`/api/post/${fakeId}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ content: 'Updated content' });
+      
+      expect(res.status).toBe(404);
+      expect(res.body.message).toContain('Post not found');
+    }, 10000);
+
+    it('should reject comment creation without authentication', async () => {
+      const { accessToken } = await registerAndLogin();
+      
+      const postRes = await request(app)
+        .post('/api/post')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ content: 'Test post' });
+      
+      const res = await request(app)
+        .post('/api/comment')
+        .send({ content: 'Test comment', post_id: postRes.body.id });
+      
+      expect(res.status).toBe(401);
+    }, 10000);
+
+    it('should reject post update without authentication', async () => {
+      const { accessToken } = await registerAndLogin();
+      
+      const postRes = await request(app)
+        .post('/api/post')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ content: 'Test post' });
+      
+      const res = await request(app)
+        .put(`/api/post/${postRes.body.id}`)
+        .send({ content: 'Hacked' });
+      
+      expect(res.status).toBe(401);
+    }, 10000);
+
+    it('should reject comment update without authentication', async () => {
+      const { accessToken } = await registerAndLogin();
+      
+      const postRes = await request(app)
+        .post('/api/post')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ content: 'Test post' });
+      
+      const commentRes = await request(app)
+        .post('/api/comment')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ content: 'Test comment', post_id: postRes.body.id });
+      
+      const res = await request(app)
+        .put(`/api/comment/${commentRes.body.id}`)
+        .send({ content: 'Hacked' });
+      
+      expect(res.status).toBe(401);
+    }, 10000);
+
+    it('should reject comment deletion without authentication', async () => {
+      const { accessToken } = await registerAndLogin();
+      
+      const postRes = await request(app)
+        .post('/api/post')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ content: 'Test post' });
+      
+      const commentRes = await request(app)
+        .post('/api/comment')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ content: 'Test comment', post_id: postRes.body.id });
+      
+      const res = await request(app)
+        .delete(`/api/comment/${commentRes.body.id}`);
+      
+      expect(res.status).toBe(401);
+    }, 10000);
+
+    it('should handle forbidden update on comment owned by another user', async () => {
+      const user1 = await registerAndLogin('user1@forbidden.com', 'pass123', 'user1');
+      const user2 = await registerAndLogin('user2@forbidden.com', 'pass123', 'user2');
+      
+      const postRes = await request(app)
+        .post('/api/post')
+        .set('Authorization', `Bearer ${user1.accessToken}`)
+        .send({ content: 'User 1 post' });
+      
+      const commentRes = await request(app)
+        .post('/api/comment')
+        .set('Authorization', `Bearer ${user1.accessToken}`)
+        .send({ content: 'User 1 comment', post_id: postRes.body.id });
+      
+      const res = await request(app)
+        .put(`/api/comment/${commentRes.body.id}`)
+        .set('Authorization', `Bearer ${user2.accessToken}`)
+        .send({ content: 'Hacked by user 2' });
+      
+      expect(res.status).toBe(403);
+      expect(res.body.message).toContain('Forbidden');
+    }, 10000);
+
+    it('should handle forbidden deletion of comment owned by another user', async () => {
+      const user1 = await registerAndLogin('owner@forbidden.com', 'pass123', 'owner');
+      const user2 = await registerAndLogin('hacker@forbidden.com', 'pass123', 'hacker');
+      
+      const postRes = await request(app)
+        .post('/api/post')
+        .set('Authorization', `Bearer ${user1.accessToken}`)
+        .send({ content: 'Owner post' });
+      
+      const commentRes = await request(app)
+        .post('/api/comment')
+        .set('Authorization', `Bearer ${user1.accessToken}`)
+        .send({ content: 'Owner comment', post_id: postRes.body.id });
+      
+      const res = await request(app)
+        .delete(`/api/comment/${commentRes.body.id}`)
+        .set('Authorization', `Bearer ${user2.accessToken}`);
+      
+      expect(res.status).toBe(403);
+      expect(res.body.message).toContain('Forbidden');
+    }, 10000);
+
+    it('should handle forbidden update on post owned by another user', async () => {
+      const owner = await registerAndLogin('postowner@test.com', 'pass123', 'postowner');
+      const hacker = await registerAndLogin('posthacker@test.com', 'pass123', 'posthacker');
+      
+      const postRes = await request(app)
+        .post('/api/post')
+        .set('Authorization', `Bearer ${owner.accessToken}`)
+        .send({ content: 'Owner post' });
+      
+      const res = await request(app)
+        .put(`/api/post/${postRes.body.id}`)
+        .set('Authorization', `Bearer ${hacker.accessToken}`)
+        .send({ content: 'Hacked content' });
+      
+      expect(res.status).toBe(403);
+      expect(res.body.message).toContain('Forbidden');
+    }, 10000);
+
+    it('should create multiple comments on the same post', async () => {
+      const { accessToken } = await registerAndLogin();
+      
+      const postRes = await request(app)
+        .post('/api/post')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ content: 'Popular post' });
+      
+      const comment1 = await request(app)
+        .post('/api/comment')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ content: 'First comment', post_id: postRes.body.id });
+      
+      const comment2 = await request(app)
+        .post('/api/comment')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ content: 'Second comment', post_id: postRes.body.id });
+      
+      expect(comment1.status).toBe(201);
+      expect(comment2.status).toBe(201);
+      
+      const listRes = await request(app)
+        .get(`/api/comment?post=${postRes.body.id}`)
+        .set('Authorization', `Bearer ${accessToken}`);
+      
+      expect(listRes.body.length).toBe(2);
+    }, 10000);
+
+    it('should list all comments without filter', async () => {
+      const { accessToken } = await registerAndLogin();
+      
+      const post1 = await request(app)
+        .post('/api/post')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ content: 'Post 1' });
+      
+      const post2 = await request(app)
+        .post('/api/post')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ content: 'Post 2' });
+      
+      await request(app)
+        .post('/api/comment')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ content: 'Comment on post 1', post_id: post1.body.id });
+      
+      await request(app)
+        .post('/api/comment')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ content: 'Comment on post 2', post_id: post2.body.id });
+      
+      const listRes = await request(app)
+        .get('/api/comment')
+        .set('Authorization', `Bearer ${accessToken}`);
+      
+      expect(listRes.status).toBe(200);
+      expect(listRes.body.length).toBe(2);
+    }, 10000);
+
+    it('should successfully update profile without changing any field', async () => {
+      const { accessToken } = await registerAndLogin('noupdate@test.com', 'pass123', 'nochange');
+      
+      const res = await request(app)
+        .put('/api/user/profile')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({});
+      
+      expect(res.status).toBe(200);
+      expect(res.body.email).toBe('noupdate@test.com');
+      expect(res.body.username).toBe('nochange');
+    }, 10000);
+
+    it('should handle getting non-existent comment', async () => {
+      const { accessToken } = await registerAndLogin();
+      const fakeId = new mongoose.Types.ObjectId();
+      
+      const res = await request(app)
+        .get(`/api/comment/${fakeId}`)
+        .set('Authorization', `Bearer ${accessToken}`);
+      
+      expect(res.status).toBe(404);
+      expect(res.body.message).toContain('Comment not found');
+    }, 10000);
+
+    it('should list posts in descending order by creation date', async () => {
+      const { accessToken } = await registerAndLogin();
+      
+      const post1 = await request(app)
+        .post('/api/post')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ content: 'First post' });
+      
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const post2 = await request(app)
+        .post('/api/post')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ content: 'Second post' });
+      
+      const listRes = await request(app).get('/api/post');
+      
+      expect(listRes.status).toBe(200);
+      expect(listRes.body.length).toBe(2);
+      // Most recent first
+      expect(listRes.body[0].id).toBe(post2.body.id);
+      expect(listRes.body[1].id).toBe(post1.body.id);
+    }, 10000);
+
+    it('should list comments in descending order by creation date', async () => {
+      const { accessToken } = await registerAndLogin();
+      
+      const postRes = await request(app)
+        .post('/api/post')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ content: 'Test post' });
+      
+      const comment1 = await request(app)
+        .post('/api/comment')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ content: 'First comment', post_id: postRes.body.id });
+      
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const comment2 = await request(app)
+        .post('/api/comment')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ content: 'Second comment', post_id: postRes.body.id });
+      
+      const listRes = await request(app)
+        .get(`/api/comment?post=${postRes.body.id}`)
+        .set('Authorization', `Bearer ${accessToken}`);
+      
+      expect(listRes.status).toBe(200);
+      expect(listRes.body.length).toBe(2);
+      // Most recent first
+      expect(listRes.body[0].id).toBe(comment2.body.id);
+      expect(listRes.body[1].id).toBe(comment1.body.id);
     }, 10000);
   });
 });
