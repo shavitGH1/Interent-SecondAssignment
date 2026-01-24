@@ -66,12 +66,9 @@ app.use('/swagger', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
  *         id:
  *           type: string
  *           example: 64b0c0f2f2f0f2f0f2f0f2f0
- *         sender_id:
- *           type: integer
- *           example: 1
- *         content:
+ *         username:
  *           type: string
- *           example: Short bio
+ *           example: johndoe
  *         date:
  *           type: string
  *           format: date-time
@@ -88,8 +85,8 @@ app.use('/swagger', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
  *         date:
  *           type: string
  *           format: date-time
- *         sender_id:
- *           type: integer
+ *         owner:
+ *           type: string
  *     Comment:
  *       type: object
  *       properties:
@@ -100,8 +97,8 @@ app.use('/swagger', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
  *         date:
  *           type: string
  *           format: date-time
- *         sender_id:
- *           type: integer
+ *         owner:
+ *           type: string
  *         post_id:
  *           type: string
  */

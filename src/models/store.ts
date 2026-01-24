@@ -3,15 +3,13 @@ interface State {
   comments: any[];
   users: any[];
   sessions: any[];
-  nextSenderId: number;
 }
 
 const initialState = (): State => ({
   posts: [],
   comments: [],
   users: [],
-  sessions: [],
-  nextSenderId: 1
+  sessions: []
 });
 
 const state: State = initialState();

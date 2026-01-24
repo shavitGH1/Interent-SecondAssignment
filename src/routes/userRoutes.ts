@@ -7,7 +7,7 @@ import {
   profile,
   updateProfile,
   deleteProfile,
-  getBySenderId
+  getById
 } from '../controllers/usersController';
 import { authRequired } from '../middleware/auth';
 
@@ -30,13 +30,14 @@ const router = express.Router();
  *             required:
  *               - email
  *               - password
+ *               - username
  *             properties:
  *               email:
  *                 type: string
  *                 format: email
  *               password:
  *                 type: string
- *               content:
+ *               username:
  *                 type: string
  *     responses:
  *       201:
@@ -124,7 +125,7 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             properties:
- *               content:
+ *               username:
  *                 type: string
  *     responses:
  *       200:
@@ -143,18 +144,18 @@ const router = express.Router();
  *         description: Profile deleted successfully
  *       401:
  *         description: Unauthorized
- * /api/user/{sender_id}:
+ * /api/user/{id}:
  *   get:
  *     tags:
  *       - Users
  *     summary: Get user by ID
- *     description: Retrieve a user's profile by their sender ID
+ *     description: Retrieve a user's profile by their ID
  *     parameters:
  *       - in: path
- *         name: sender_id
+ *         name: id
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     responses:
  *       200:
  *         description: User found
@@ -172,6 +173,6 @@ router.post('/user/refresh', refresh);
 router.get('/user/profile', authRequired, profile);
 router.put('/user/profile', authRequired, updateProfile);
 router.delete('/user/profile', authRequired, deleteProfile);
-router.get('/user/:sender_id', getBySenderId);
+router.get('/user/:id', getById);
 
 export default router;

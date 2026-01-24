@@ -14,25 +14,30 @@ declare global {
 }
 
 export const authRequired = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  const header = req.headers.authorization || '';
-  const [, token] = header.split(' ');
-  
-  if (!token) {
-    res.status(401).json({ message: 'Unauthorized' });
-    return;
+  try {
+    const header = req.headers.authorization || '';
+    const [, token] = header.split(' ');
+    
+    if (!token) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const session = await Session.findOne({
+      accessToken: token,
+      expiresAt: { $gt: new Date() }
+    }).populate('userId');
+
+    if (!session) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    req.user = session.userId as any;
+    req.session = session;
+    next();
+  } catch (error) {
+    console.error('Error in authRequired middleware:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
-
-  const session = await Session.findOne({
-    accessToken: token,
-    expiresAt: { $gt: new Date() }
-  }).populate('userId');
-
-  if (!session) {
-    res.status(401).json({ message: 'Unauthorized' });
-    return;
-  }
-
-  req.user = session.userId as any;
-  req.session = session;
-  next();
 };
