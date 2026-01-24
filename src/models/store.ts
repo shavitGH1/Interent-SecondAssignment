@@ -1,6 +1,4 @@
 interface State {
-  items: any[];
-  nextItemId: number;
   posts: any[];
   comments: any[];
   users: any[];
@@ -9,8 +7,6 @@ interface State {
 }
 
 const initialState = (): State => ({
-  items: [],
-  nextItemId: 1,
   posts: [],
   comments: [],
   users: [],

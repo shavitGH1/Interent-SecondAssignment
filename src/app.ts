@@ -5,7 +5,6 @@ import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 
 import healthRoutes from './routes/healthRoutes';
-import itemRoutes from './routes/itemRoutes';
 import userRoutes from './routes/userRoutes';
 import postRoutes from './routes/postRoutes';
 import commentRoutes from './routes/commentRoutes';
@@ -14,6 +13,21 @@ import { resetStore } from './models/store';
 const app: Application = express();
 app.use(cors());
 app.use(express.json());
+
+// Log request time, duration, and status for each request
+app.use((req: Request, res: Response, next) => {
+  const startedAt = new Date();
+  const startTime = process.hrtime.bigint();
+
+  res.on('finish', () => {
+    const endTime = process.hrtime.bigint();
+    const durationMs = Number(endTime - startTime) / 1_000_000;
+    const timestamp = startedAt.toISOString();
+    console.log(`[${timestamp}] ${req.method} ${req.originalUrl} ${res.statusCode} ${durationMs.toFixed(2)}ms`);
+  });
+
+  next();
+});
 
 const swaggerDefinition = {
   openapi: '3.0.0',
@@ -46,22 +60,6 @@ app.use('/swagger', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
  *       scheme: bearer
  *       bearerFormat: JWT
  *   schemas:
- *     Item:
- *       type: object
- *       required:
- *         - name
- *         - price
- *       properties:
- *         id:
- *           type: integer
- *           example: 1
- *         name:
- *           type: string
- *           example: Sample item
- *         price:
- *           type: number
- *           format: float
- *           example: 9.99
  *     User:
  *       type: object
  *       properties:
@@ -109,7 +107,6 @@ app.use('/swagger', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
  */
 
 app.use('/api', healthRoutes);
-app.use('/api', itemRoutes);
 app.use('/api', userRoutes);
 app.use('/api', postRoutes);
 app.use('/api', commentRoutes);
