@@ -25,7 +25,11 @@ describe('Complete API Test Suite', () => {
   }, 30000);
 
   afterAll(async () => {
-    await mongoose.disconnect();
+    await User.deleteMany({});
+    await Post.deleteMany({});
+    await Comment.deleteMany({});
+    await Session.deleteMany({});
+    await mongoose.connection.close();
   });
 
   beforeEach(async () => {
@@ -1073,6 +1077,129 @@ describe('Complete API Test Suite', () => {
       
       expect(res.status).toBe(200);
       expect(res.body).toEqual([]);
+    }, 10000);
+  });
+
+  // ====================================
+  // ADDITIONAL EDGE CASES FOR USER PROFILE
+  // ====================================
+  describe('User Profile Edge Cases', () => {
+    it('should update only email in profile', async () => {
+      const { accessToken } = await registerAndLogin('oldmail@test.com', 'pass123', 'olduser');
+      
+      const res = await request(app)
+        .put('/api/user/profile')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ email: 'newmail@test.com' });
+      
+      expect(res.status).toBe(200);
+      expect(res.body.email).toBe('newmail@test.com');
+      expect(res.body.username).toBe('olduser');
+    }, 10000);
+
+    it('should update only username in profile', async () => {
+      const { accessToken } = await registerAndLogin('user@test.com', 'pass123', 'oldname');
+      
+      const res = await request(app)
+        .put('/api/user/profile')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ username: 'newname' });
+      
+      expect(res.status).toBe(200);
+      expect(res.body.username).toBe('newname');
+      expect(res.body.email).toBe('user@test.com');
+    }, 10000);
+
+    it('should update only password in profile', async () => {
+      const { accessToken } = await registerAndLogin('user2@test.com', 'oldpass', 'user2');
+      
+      const res = await request(app)
+        .put('/api/user/profile')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ password: 'newpassword123' });
+      
+      expect(res.status).toBe(200);
+      
+      // Verify new password works
+      const loginRes = await request(app)
+        .post('/api/user/login')
+        .send({ email: 'user2@test.com', password: 'newpassword123' });
+      
+      expect(loginRes.status).toBe(200);
+    }, 10000);
+
+    it('should reject profile update with duplicate email', async () => {
+      await registerAndLogin('existing@test.com', 'pass123', 'existing1');
+      const { accessToken } = await registerAndLogin('another@test.com', 'pass123', 'another1');
+      
+      const res = await request(app)
+        .put('/api/user/profile')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ email: 'existing@test.com' });
+      
+      expect(res.status).toBe(409);
+      expect(res.body.message).toContain('email already registered');
+    }, 10000);
+
+    it('should reject profile update with duplicate username', async () => {
+      await registerAndLogin('user1@test.com', 'pass123', 'existinguser');
+      const { accessToken } = await registerAndLogin('user2@test.com', 'pass123', 'anotheruser');
+      
+      const res = await request(app)
+        .put('/api/user/profile')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ username: 'existinguser' });
+      
+      expect(res.status).toBe(409);
+      expect(res.body.message).toContain('username already taken');
+    }, 10000);
+
+    it('should allow updating email to same email', async () => {
+      const { accessToken } = await registerAndLogin('same@test.com', 'pass123', 'sameuser');
+      
+      const res = await request(app)
+        .put('/api/user/profile')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ email: 'same@test.com' });
+      
+      expect(res.status).toBe(200);
+      expect(res.body.email).toBe('same@test.com');
+    }, 10000);
+
+    it('should allow updating username to same username', async () => {
+      const { accessToken } = await registerAndLogin('user@same.com', 'pass123', 'samename');
+      
+      const res = await request(app)
+        .put('/api/user/profile')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ username: 'samename' });
+      
+      expect(res.status).toBe(200);
+      expect(res.body.username).toBe('samename');
+    }, 10000);
+
+    it('should update all fields in profile at once', async () => {
+      const { accessToken } = await registerAndLogin('old@test.com', 'oldpass', 'olduser123');
+      
+      const res = await request(app)
+        .put('/api/user/profile')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ 
+          email: 'new@test.com',
+          username: 'newuser123',
+          password: 'newpass123'
+        });
+      
+      expect(res.status).toBe(200);
+      expect(res.body.email).toBe('new@test.com');
+      expect(res.body.username).toBe('newuser123');
+      
+      // Verify new password works
+      const loginRes = await request(app)
+        .post('/api/user/login')
+        .send({ email: 'new@test.com', password: 'newpass123' });
+      
+      expect(loginRes.status).toBe(200);
     }, 10000);
   });
 });

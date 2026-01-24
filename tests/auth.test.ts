@@ -11,7 +11,9 @@ describe('Authentication & Authorization Tests', () => {
   }, 30000);
 
   afterAll(async () => {
-    await mongoose.disconnect();
+    await User.deleteMany({});
+    await Session.deleteMany({});
+    await mongoose.connection.close();
   });
 
   beforeEach(async () => {

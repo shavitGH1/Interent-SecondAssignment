@@ -7,8 +7,8 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "dev": "nodemon --exec ts-node src/server.ts",
-    "test": "jest --runInBand",
-    "test:coverage": "jest --runInBand --coverage --coverageDirectory=coverage"
+    "test": "jest --runInBand --silent",
+    "test:coverage": "jest --runInBand --silent --coverage --coverageDirectory=coverage"
   },
   "keywords": [
     "express",
@@ -61,7 +61,10 @@
     ],
     "transform": {
       "^.+\\.ts$": "ts-jest"
-    }
+    },
+    "forceExit": true,
+    "detectOpenHandles": false,
+    "testTimeout": 30000
   },
   "engines": {
     "node": ">=18"
